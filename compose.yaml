@@ -1,0 +1,10 @@
+services:
+  collector:
+    build: .
+    restart: unless-stopped
+    environment:
+      SIGNOZ_INGESTION_KEY: ${SIGNOZ_INGESTION_KEY}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+

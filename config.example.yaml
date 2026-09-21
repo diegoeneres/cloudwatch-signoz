@@ -1,0 +1,25 @@
+interval_seconds: 3600
+discovery_interval_seconds: 3600
+lookback_seconds: 7200
+log_level: INFO
+
+signoz:
+  endpoint: https://ingest.<REGION>.signoz.cloud:443
+  ingestion_key: ${SIGNOZ_INGESTION_KEY}
+
+targets:
+  - account: "111111111111"
+    region: us-east-1
+    role_arn: arn:aws:iam::111111111111:role/CloudWatchSigNozReadOnly
+  - account: "111111111111"
+    region: us-west-2
+    role_arn: arn:aws:iam::111111111111:role/CloudWatchSigNozReadOnly
+  - account: "111111111111"
+    region: sa-east-1
+    role_arn: arn:aws:iam::111111111111:role/CloudWatchSigNozReadOnly
+  - account: "222222222222"
+    region: us-east-1
+    role_arn: arn:aws:iam::222222222222:role/CloudWatchSigNozReadOnly
+  - account: "222222222222"
+    region: sa-east-1
+    role_arn: arn:aws:iam::222222222222:role/CloudWatchSigNozReadOnly
