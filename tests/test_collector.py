@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 
 from cloudwatch_signoz.aws import AwsTargetClient, Instance, Sample
-from cloudwatch_signoz.config import Target, load_config
+from cloudwatch_signoz.config import Config, Target, load_config
+from cloudwatch_signoz.service import CollectorService
 from cloudwatch_signoz.signoz import otlp_payload
 
 
@@ -30,6 +31,40 @@ class CloudWatch:
 class Session:
     def client(self, service, **kwargs):
         return EC2() if service == "ec2" else CloudWatch()
+
+
+def test_first_cycle_discovers_before_interval_and_refreshes_when_due(monkeypatch):
+    now = [0.0]
+    monkeypatch.setattr("cloudwatch_signoz.service.time.monotonic", lambda: now[0])
+    target = Target("123", "sa-east-1")
+    client = AwsTargetClient(target, Session())
+    discoveries = []
+    discover = client.discover_instances
+
+    def tracked_discover():
+        discoveries.append(now[0])
+        return discover()
+
+    monkeypatch.setattr(client, "discover_instances", tracked_discover)
+    sent = []
+
+    class Sink:
+        def send(self, samples):
+            sent.extend(samples)
+
+    service = CollectorService(
+        Config((target,), "https://example.com", "test"),
+        client_factory=lambda _: client,
+        signoz=Sink(),
+    )
+    assert service.run_once() == 1
+    now[0] = 60.0
+    assert service.run_once() == 1
+    assert discoveries == [0.0]
+    now[0] = 3600.0
+    assert service.run_once() == 1
+    assert discoveries == [0.0, 3600.0]
+    assert len(sent) == 3
 
 
 def test_discovers_only_t_family_and_collects_latest_value():

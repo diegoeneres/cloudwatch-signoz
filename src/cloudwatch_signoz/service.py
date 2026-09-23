@@ -26,10 +26,13 @@ class CollectorService:
             config.signoz_endpoint, config.signoz_ingestion_key, config.request_timeout_seconds
         )
         self.instances: dict[object, list[Instance]] = {}
-        self.last_discovery = 0.0
+        self.last_discovery: float | None = None
 
     def _discover_if_due(self) -> None:
-        if time.monotonic() - self.last_discovery < self.config.discovery_interval_seconds:
+        if (
+            self.last_discovery is not None
+            and time.monotonic() - self.last_discovery < self.config.discovery_interval_seconds
+        ):
             return
         for client in self.clients:
             discovered = client.discover_instances()
