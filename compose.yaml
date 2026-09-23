@@ -3,8 +3,13 @@ services:
     build: .
     restart: unless-stopped
     environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      AWS_ACCOUNT_ID: ${AWS_ACCOUNT_ID}
+      AWS_REGIONS: ${AWS_REGIONS:-sa-east-1}
+      AWS_REGION: ${AWS_REGION:-sa-east-1}
+      AWS_DEFAULT_REGION: ${AWS_REGION:-sa-east-1}
       SIGNOZ_INGESTION_KEY: ${SIGNOZ_INGESTION_KEY}
-      AWS_REGION: ${AWS_REGION:-us-east-1}
     volumes:
       - ./config.yaml:/config/config.yaml:ro
-

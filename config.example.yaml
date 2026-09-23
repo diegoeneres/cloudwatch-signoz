@@ -8,18 +8,13 @@ signoz:
   ingestion_key: ${SIGNOZ_INGESTION_KEY}
 
 targets:
-  - account: "111111111111"
-    region: us-east-1
-    role_arn: arn:aws:iam::111111111111:role/CloudWatchSigNozReadOnly
-  - account: "111111111111"
-    region: us-west-2
-    role_arn: arn:aws:iam::111111111111:role/CloudWatchSigNozReadOnly
-  - account: "111111111111"
-    region: sa-east-1
-    role_arn: arn:aws:iam::111111111111:role/CloudWatchSigNozReadOnly
-  - account: "222222222222"
-    region: us-east-1
-    role_arn: arn:aws:iam::222222222222:role/CloudWatchSigNozReadOnly
-  - account: "222222222222"
-    region: sa-east-1
-    role_arn: arn:aws:iam::222222222222:role/CloudWatchSigNozReadOnly
+  # A conta e todas as regiões são carregadas do arquivo .env.
+  # Sem role_arn, o boto3 usa diretamente a Access Key informada.
+  - account: ${AWS_ACCOUNT_ID}
+    regions: ${AWS_REGIONS}
+
+  # Para outra conta, informe uma lista de regiões e uma role que a
+  # credencial-base possa assumir:
+  # - account: "222222222222"
+  #   regions: sa-east-1,us-east-1
+  #   role_arn: arn:aws:iam::222222222222:role/CloudWatchSigNozReadOnly

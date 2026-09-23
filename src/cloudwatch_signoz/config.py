@@ -42,15 +42,27 @@ def load_config(path: str | Path) -> Config:
     with Path(path).open(encoding="utf-8") as stream:
         raw = yaml.safe_load(stream) or {}
     signoz = raw.get("signoz", {})
-    targets = tuple(
-        Target(
-            account=str(item["account"]),
-            region=str(item["region"]),
-            role_arn=_env(item.get("role_arn")),
-            external_id=_env(item.get("external_id")),
-        )
-        for item in raw.get("targets", [])
-    )
+    targets_list: list[Target] = []
+    for item in raw.get("targets", []):
+        account = str(_env(item["account"])).strip()
+        role_arn = _env(item.get("role_arn"))
+        external_id = _env(item.get("external_id"))
+        configured_regions = item.get("regions", item.get("region"))
+        if configured_regions is None:
+            raise ValueError(f"target {account} requires region or regions")
+        expanded_regions = _env(configured_regions)
+        if isinstance(expanded_regions, str):
+            regions = expanded_regions.split(",")
+        elif isinstance(expanded_regions, list):
+            regions = expanded_regions
+        else:
+            raise ValueError(f"invalid regions for target {account}")
+        for region in regions:
+            region = str(_env(region)).strip()
+            if region:
+                targets_list.append(Target(account, region, role_arn, external_id))
+    # Preserve order while preventing duplicate CloudWatch queries.
+    targets = tuple(dict.fromkeys(targets_list))
     if not targets:
         raise ValueError("at least one AWS target is required")
     endpoint = _env(signoz.get("endpoint", "" )).rstrip("/")

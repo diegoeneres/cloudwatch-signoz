@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from cloudwatch_signoz.aws import AwsTargetClient, Instance, Sample
-from cloudwatch_signoz.config import Target
+from cloudwatch_signoz.config import Target, load_config
 from cloudwatch_signoz.signoz import otlp_payload
 
 
@@ -52,3 +52,26 @@ def test_otlp_payload_has_filters_required_by_proposal():
     attrs = metric["gauge"]["dataPoints"][0]["attributes"]
     assert {a["key"] for a in attrs} >= {"cloud.account.id", "cloud.region", "host.id", "host.name"}
 
+
+def test_config_expands_account_regions_and_secrets(tmp_path, monkeypatch):
+    monkeypatch.setenv("AWS_ACCOUNT_ID", "123456789012")
+    monkeypatch.setenv("AWS_REGIONS", "sa-east-1, us-east-1,sa-east-1")
+    monkeypatch.setenv("SIGNOZ_INGESTION_KEY", "secret")
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        """
+signoz:
+  endpoint: https://ingest.example.com
+  ingestion_key: ${SIGNOZ_INGESTION_KEY}
+targets:
+  - account: ${AWS_ACCOUNT_ID}
+    regions: ${AWS_REGIONS}
+""",
+        encoding="utf-8",
+    )
+    config = load_config(config_file)
+    assert config.targets == (
+        Target("123456789012", "sa-east-1"),
+        Target("123456789012", "us-east-1"),
+    )
+    assert config.signoz_ingestion_key == "secret"

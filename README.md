@@ -6,10 +6,26 @@ envia a métrica ao SigNoz Cloud via OTLP/HTTP JSON.
 
 ## Executar
 
-1. Copie `config.example.yaml` para `config.yaml` e ajuste contas, regiões, roles e endpoint.
-2. Exporte `SIGNOZ_INGESTION_KEY` e disponibilize credenciais AWS para a VM (idealmente por
-   instance profile, sem chaves estáticas).
-3. Execute `docker compose up -d --build`.
+1. Copie os exemplos: `cp config.example.yaml config.yaml` e `cp .env.example .env`.
+2. No `.env`, informe `AWS_ACCOUNT_ID`, `AWS_REGIONS`, `AWS_ACCESS_KEY_ID`,
+   `AWS_SECRET_ACCESS_KEY` e `SIGNOZ_INGESTION_KEY`. Use `AWS_SESSION_TOKEN` apenas para
+   credenciais temporárias.
+3. Em `config.yaml`, substitua `<REGION>` no endpoint do SigNoz pela região do seu ambiente
+   SigNoz Cloud (ela pode ser diferente da região AWS).
+4. Execute `docker compose up -d --build`.
+
+O Docker Compose injeta as credenciais no container e o `boto3` as carrega automaticamente. Os
+arquivos `.env` e `config.yaml` estão no `.gitignore` para evitar o versionamento de segredos.
+
+Defina todas as regiões AWS em uma lista separada por vírgulas, sem espaços:
+
+```env
+AWS_REGIONS=sa-east-1,us-east-1,us-east-2,us-west-2,eu-west-1
+```
+
+O serviço cria um coletor lógico para cada região, consulta todas em paralelo e identifica cada
+amostra com o atributo `cloud.region`. Alterar o `.env` e reiniciar o container adiciona ou remove
+regiões da coleta.
 
 Para validar uma única coleta localmente:
 
@@ -21,9 +37,10 @@ SIGNOZ_INGESTION_KEY=... .venv/bin/cloudwatch-signoz --config config.yaml --once
 
 ## AWS IAM
 
-Anexe `iam-policy.json` às roles de leitura das contas de destino. A role da VM central também
-precisa de `sts:AssumeRole` para essas roles. A trust policy de cada role deve confiar na role da
-VM central. `external_id` é aceito por alvo quando exigido pela trust policy.
+Anexe `iam-policy.json` ao usuário IAM dono da Access Key. Para consultar outra conta, a
+credencial-base também precisa de `sts:AssumeRole`, e a role de destino deve confiar nesse usuário.
+`external_id` é aceito por alvo quando exigido pela trust policy. Em produção, prefira uma IAM
+Role associada à VM em vez de credenciais permanentes sempre que isso for possível.
 
 ## Métrica e dashboard
 
