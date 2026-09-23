@@ -1,0 +1,366 @@
+{
+  "schemaVersion": "v6",
+  "generateName": true,
+  "tags": [],
+  "spec": {
+    "display": {
+      "name": "AWS EC2 - Saldo de créditos de CPU",
+      "description": "CPUCreditBalance coletado por cloudwatch-signoz. Valores em créditos, com coleta horária. Ausência de dados não significa saldo zero. Selecione All nos filtros para visualizar todos os alvos."
+    },
+    "duration": "3h",
+    "refreshInterval": "5m",
+    "variables": [
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "cloud.account.id",
+          "display": {
+            "name": "Conta AWS"
+          },
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "sort": "none",
+          "plugin": {
+            "kind": "signoz/DynamicVariable",
+            "spec": {
+              "name": "cloud.account.id",
+              "signal": "metrics"
+            }
+          }
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "cloud.region",
+          "display": {
+            "name": "Região AWS"
+          },
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "sort": "none",
+          "plugin": {
+            "kind": "signoz/DynamicVariable",
+            "spec": {
+              "name": "cloud.region",
+              "signal": "metrics"
+            }
+          }
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "host.id",
+          "display": {
+            "name": "Instância EC2"
+          },
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "sort": "none",
+          "plugin": {
+            "kind": "signoz/DynamicVariable",
+            "spec": {
+              "name": "host.id",
+              "signal": "metrics"
+            }
+          }
+        }
+      }
+    ],
+    "panels": {
+      "balances": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Último saldo por instância (créditos)",
+            "description": "Última amostra disponível no período selecionado, por conta, região e instância. Pode ter até duas horas de atraso. Ordene a coluna A para localizar os menores saldos."
+          },
+          "plugin": {
+            "kind": "signoz/TablePanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "columnUnits": {
+                  "A": "none"
+                },
+                "decimalPrecision": "2"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 300,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "aws.ec2.cpu_credit_balance",
+                              "timeAggregation": "max",
+                              "spaceAggregation": "max",
+                              "reduceTo": "last"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "cloud.account.id IN $cloud.account.id AND cloud.region IN $cloud.region AND host.id IN $host.id"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "cloud.account.id",
+                              "fieldContext": "attribute",
+                              "fieldDataType": "string"
+                            },
+                            {
+                              "name": "cloud.region",
+                              "fieldContext": "attribute",
+                              "fieldDataType": "string"
+                            },
+                            {
+                              "name": "host.id",
+                              "fieldContext": "attribute",
+                              "fieldDataType": "string"
+                            },
+                            {
+                              "name": "host.name",
+                              "fieldContext": "attribute",
+                              "fieldDataType": "string"
+                            },
+                            {
+                              "name": "aws.ec2.instance.type",
+                              "fieldContext": "attribute",
+                              "fieldDataType": "string"
+                            }
+                          ],
+                          "order": [],
+                          "limit": 1000,
+                          "legend": ""
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "history": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Histórico por instância (créditos)",
+            "description": "Uma amostra por coleta horária. Os pontos representam observações; não há preenchimento com zero. Use o filtro de instância para reduzir o número de séries."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "none",
+                "decimalPrecision": "2"
+              },
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": true,
+                "lineStyle": "solid",
+                "fillMode": "none"
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 300,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "aws.ec2.cpu_credit_balance",
+                              "timeAggregation": "max",
+                              "spaceAggregation": "max"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "cloud.account.id IN $cloud.account.id AND cloud.region IN $cloud.region AND host.id IN $host.id"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "cloud.account.id",
+                              "fieldContext": "attribute",
+                              "fieldDataType": "string"
+                            },
+                            {
+                              "name": "cloud.region",
+                              "fieldContext": "attribute",
+                              "fieldDataType": "string"
+                            },
+                            {
+                              "name": "host.id",
+                              "fieldContext": "attribute",
+                              "fieldDataType": "string"
+                            }
+                          ],
+                          "order": [],
+                          "limit": 1000,
+                          "legend": "{{cloud.account.id}} / {{cloud.region}} / {{host.id}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "regional-minimum": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Menor saldo observado por região (créditos)",
+            "description": "Mínimo entre as instâncias com amostra em cada intervalo de 5 minutos. A instância responsável pelo mínimo pode mudar; não é soma nem média regional."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "none",
+                "decimalPrecision": "2"
+              },
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": true,
+                "lineStyle": "solid",
+                "fillMode": "none"
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 300,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "aws.ec2.cpu_credit_balance",
+                              "timeAggregation": "max",
+                              "spaceAggregation": "min"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "cloud.account.id IN $cloud.account.id AND cloud.region IN $cloud.region AND host.id IN $host.id"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "cloud.account.id",
+                              "fieldContext": "attribute",
+                              "fieldDataType": "string"
+                            },
+                            {
+                              "name": "cloud.region",
+                              "fieldContext": "attribute",
+                              "fieldDataType": "string"
+                            }
+                          ],
+                          "order": [],
+                          "limit": 1000,
+                          "legend": "{{cloud.account.id}} / {{cloud.region}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Créditos de CPU — EC2 T-family",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/balances"
+              }
+            },
+            {
+              "x": 0,
+              "y": 8,
+              "width": 12,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/history"
+              }
+            },
+            {
+              "x": 0,
+              "y": 14,
+              "width": 12,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/regional-minimum"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
