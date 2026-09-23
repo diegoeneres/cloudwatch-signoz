@@ -22,6 +22,8 @@ def otlp_payload(samples: Iterable[Sample]) -> dict:
         ]
         if sample.instance.name:
             attributes.append(_attr("host.name", sample.instance.name))
+        if sample.instance.user_id:
+            attributes.append(_attr("aws.ec2.tag.UserID", sample.instance.user_id))
         points.append(
             {
                 "attributes": attributes,

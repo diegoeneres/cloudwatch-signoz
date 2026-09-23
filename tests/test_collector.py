@@ -9,7 +9,9 @@ from cloudwatch_signoz.signoz import otlp_payload
 class Paginator:
     def paginate(self, **kwargs):
         return [{"Reservations": [{"Instances": [
-            {"InstanceId": "i-t", "InstanceType": "t3.micro", "Tags": [{"Key": "Name", "Value": "api"}]},
+            {"InstanceId": "i-t", "InstanceType": "t3.micro", "Tags": [
+                {"Key": "Name", "Value": "api"}, {"Key": "UserID", "Value": "user-123"},
+            ]},
             {"InstanceId": "i-m", "InstanceType": "m6i.large"},
         ]}]}]
 
@@ -70,10 +72,12 @@ def test_first_cycle_discovers_before_interval_and_refreshes_when_due(monkeypatc
 def test_discovers_only_t_family_and_collects_latest_value():
     client = AwsTargetClient(Target("123", "sa-east-1"), Session())
     instances = client.discover_instances()
-    assert instances == [Instance("i-t", "t3.micro", "api")]
+    assert instances == [Instance("i-t", "t3.micro", "api", "user-123")]
     sample = client.collect(instances, 600)[0]
     assert sample.value == 42.0
     assert sample.account == "123"
+    attrs = otlp_payload([sample])["resourceMetrics"][0]["scopeMetrics"][0]["metrics"][0]["gauge"]["dataPoints"][0]["attributes"]
+    assert {a["key"]: a["value"]["stringValue"] for a in attrs}["aws.ec2.tag.UserID"] == "user-123"
 
 
 def test_otlp_payload_has_filters_required_by_proposal():
@@ -86,6 +90,7 @@ def test_otlp_payload_has_filters_required_by_proposal():
     assert metric["name"] == "aws.ec2.cpu_credit_balance"
     attrs = metric["gauge"]["dataPoints"][0]["attributes"]
     assert {a["key"] for a in attrs} >= {"cloud.account.id", "cloud.region", "host.id", "host.name"}
+    assert "aws.ec2.tag.UserID" not in {a["key"] for a in attrs}
 
 
 def test_config_expands_account_regions_and_secrets(tmp_path, monkeypatch):

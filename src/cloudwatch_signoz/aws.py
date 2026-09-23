@@ -17,6 +17,7 @@ class Instance:
     instance_id: str
     instance_type: str
     name: str = ""
+    user_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -65,7 +66,10 @@ class AwsTargetClient:
                     if not T_FAMILY.match(instance_type):
                         continue
                     tags = {tag["Key"]: tag["Value"] for tag in item.get("Tags", [])}
-                    instances.append(Instance(item["InstanceId"], instance_type, tags.get("Name", "")))
+                    instances.append(Instance(
+                        item["InstanceId"], instance_type,
+                        tags.get("Name", ""), tags.get("UserID", ""),
+                    ))
         return instances
 
     def collect(self, instances: list[Instance], lookback_seconds: int) -> list[Sample]:

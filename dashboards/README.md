@@ -1,5 +1,13 @@
 # Dashboard de créditos de CPU
 
+O filtro **UserID** usa o atributo `aws.ec2.tag.UserID`, extraído da tag EC2
+`UserID` (respeitando maiúsculas e minúsculas). Ele se aplica aos três painéis
+e também aparece como coluna na tabela. Atualize o coletor e envie uma nova
+coleta antes de usar o dashboard atualizado. Amostras antigas não recebem
+a tag retroativamente. Instâncias sem a tag continuam sendo coletadas, mas
+não terão esse atributo para seleção no filtro. Alterações na tag são lidas
+na próxima descoberta de instâncias.
+
 Importe `ec2-cpu-credits.json` em **Dashboards → New dashboard → Import JSON → Upload JSON file** no SigNoz. O arquivo usa o formato atual V2 (`schemaVersion: v6`).
 
 Selecione **All** nos filtros de conta, região e instância para exibir todos os alvos. A janela inicial é de 3 horas; para acompanhar a evolução, use 24 horas ou mais após manter o coletor em execução.
