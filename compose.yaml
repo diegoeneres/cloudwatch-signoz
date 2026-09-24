@@ -2,6 +2,7 @@ services:
   collector:
     build: .
     restart: unless-stopped
+    stop_grace_period: 2m
     environment:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
@@ -11,5 +12,8 @@ services:
       AWS_REGION: ${AWS_REGION:-sa-east-1}
       AWS_DEFAULT_REGION: ${AWS_REGION:-sa-east-1}
       SIGNOZ_INGESTION_KEY: ${SIGNOZ_INGESTION_KEY}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-cloudwatch-signoz}
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     volumes:
       - ./config.yaml:/config/config.yaml:ro

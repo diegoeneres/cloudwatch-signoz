@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import argparse
 import logging
+import signal
+import threading
 
 from .config import load_config
 from .service import CollectorService
+from .telemetry import configure_telemetry
 
 
 def main() -> None:
@@ -17,11 +20,22 @@ def main() -> None:
         level=getattr(logging, config.log_level.upper(), logging.INFO),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
-    service = CollectorService(config)
-    if args.once:
-        service.run_once()
-    else:
-        service.run_forever()
+    telemetry = configure_telemetry(config)
+    stop = threading.Event()
+    previous_handlers = {}
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        previous_handlers[sig] = signal.signal(sig, lambda *_: stop.set())
+    try:
+        with telemetry.operation("collector.initialize"):
+            service = CollectorService(config, telemetry=telemetry)
+        if args.once:
+            service.run_once()
+        else:
+            service.run_forever(stop)
+    finally:
+        telemetry.shutdown()
+        for sig, handler in previous_handlers.items():
+            signal.signal(sig, handler)
 
 
 if __name__ == "__main__":

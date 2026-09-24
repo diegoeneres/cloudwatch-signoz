@@ -1,5 +1,47 @@
 # CloudWatch → SigNoz
 
+A aplicação também envia logs, traces e métricas operacionais ao SigNoz.
+Consulte [instrumentação e validação](docs/telemetry.md).
+
+## Publicação da imagem no GitHub
+
+O workflow `.github/workflows/publish-image.yml` executa os testes e publica a
+imagem no GitHub Container Registry (GHCR) quando uma tag é enviada ao GitHub.
+O commit marcado deve conter o workflow. Não é necessário cadastrar secrets:
+a autenticação usa o `GITHUB_TOKEN` automático, com `packages: write`.
+
+Após commitar e enviar as alterações, publique uma versão:
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+Acompanhe a execução na aba **Actions**. Ao terminar com sucesso, a imagem
+estará em **Packages**, com o endereço:
+
+```text
+ghcr.io/diegoeneres/cloudwatch-signoz:v0.2.0
+```
+
+A imagem é construída para `linux/amd64`. Cada tag Git gera uma tag de imagem
+(caracteres incompatíveis com tags Docker são normalizados pela metadata-action).
+Não é criada uma tag `latest`; utilize a versão desejada explicitamente.
+
+Para baixar na VM:
+
+```bash
+docker pull ghcr.io/diegoeneres/cloudwatch-signoz:v0.2.0
+```
+
+Se o pacote for privado, autentique primeiro com `docker login ghcr.io`, usando
+seu usuário GitHub e um token com `read:packages` como senha. Para usar a imagem
+no Compose, substitua `build: .` por
+`image: ghcr.io/diegoeneres/cloudwatch-signoz:v0.2.0` e execute
+`docker compose up -d`. Preserve as configurações de ambiente e volume.
+
+Referência: https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images
+
 Serviço Python que implementa o coletor descrito na proposta executiva: descobre instâncias EC2
 T-family em múltiplas contas/regiões, consulta `AWS/EC2/CPUCreditBalance` a cada hora e
 envia a métrica ao SigNoz Cloud via OTLP/HTTP JSON.

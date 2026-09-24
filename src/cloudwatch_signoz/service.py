@@ -3,12 +3,16 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from contextvars import copy_context
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable
+
+from opentelemetry import trace
 
 from .aws import AwsTargetClient, Instance, Sample
 from .config import Config
 from .signoz import SignozClient
+from .telemetry import Telemetry
 
 LOG = logging.getLogger(__name__)
 
@@ -19,8 +23,10 @@ class CollectorService:
         config: Config,
         client_factory: Callable = AwsTargetClient,
         signoz: SignozClient | None = None,
+        telemetry: Telemetry | None = None,
     ) -> None:
         self.config = config
+        self.telemetry = telemetry or Telemetry()
         self.clients = [client_factory(target) for target in config.targets]
         self.signoz = signoz or SignozClient(
             config.signoz_endpoint, config.signoz_ingestion_key, config.request_timeout_seconds
@@ -35,7 +41,10 @@ class CollectorService:
         ):
             return
         for client in self.clients:
-            discovered = client.discover_instances()
+            attributes = self._attributes(client)
+            with self.telemetry.operation("aws.discover", attributes):
+                discovered = client.discover_instances()
+                self.telemetry.instances.record(len(discovered), attributes)
             self.instances[client] = discovered
             LOG.info(
                 "discovered_instances count=%d account=%s region=%s",
@@ -43,12 +52,28 @@ class CollectorService:
             )
         self.last_discovery = time.monotonic()
 
+    @staticmethod
+    def _attributes(client) -> dict[str, str]:
+        return {"cloud.account.id": client.target.account, "cloud.region": client.target.region}
+
+    def _collect(self, client) -> list[Sample]:
+        attributes = self._attributes(client)
+        with self.telemetry.operation("aws.collect", attributes):
+            samples = client.collect(self.instances.get(client, []), self.config.lookback_seconds)
+            self.telemetry.samples.add(len(samples), attributes)
+            LOG.info("samples_collected count=%d account=%s region=%s", len(samples), client.target.account, client.target.region)
+            return samples
+
     def run_once(self) -> int:
+        with self.telemetry.operation("collector.cycle"):
+            return self._run_once()
+
+    def _run_once(self) -> int:
         self._discover_if_due()
         samples: list[Sample] = []
         with ThreadPoolExecutor(max_workers=min(10, len(self.clients))) as executor:
             jobs = {
-                executor.submit(client.collect, self.instances.get(client, []), self.config.lookback_seconds): client
+                executor.submit(copy_context().run, self._collect, client): client
                 for client in self.clients
             }
             for future in as_completed(jobs):
@@ -56,11 +81,16 @@ class CollectorService:
                 try:
                     samples.extend(future.result())
                 except Exception:
+                    trace.get_current_span().set_status(trace.Status(
+                        trace.StatusCode.ERROR, "One or more AWS targets failed"
+                    ))
                     LOG.exception(
                         "collection_failed account=%s region=%s",
                         client.target.account, client.target.region,
                     )
-        self.signoz.send(samples)
+        with self.telemetry.operation("signoz.send"):
+            self.signoz.send(samples)
+            self.telemetry.sent.add(len(samples))
         LOG.info("samples_sent count=%d", len(samples))
         return len(samples)
 
