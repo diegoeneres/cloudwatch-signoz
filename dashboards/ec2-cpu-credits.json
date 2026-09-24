@@ -87,6 +87,25 @@
                                                                             }
                                                                }
                                                 }
+                                   },
+                                   {
+                                       "kind":  "ListVariable",
+                                       "spec":  {
+                                                    "name":  "host.name",
+                                                    "display":  {
+                                                                    "name":  "Nome da instancia (host.name)"
+                                                                },
+                                                    "allowAllValue":  true,
+                                                    "allowMultiple":  true,
+                                                    "sort":  "none",
+                                                    "plugin":  {
+                                                                   "kind":  "signoz/DynamicVariable",
+                                                                   "spec":  {
+                                                                                "signal":  "metrics",
+                                                                                "name":  "host.name"
+                                                                            }
+                                                               }
+                                                }
                                    }
                                ],
                  "panels":  {
@@ -135,7 +154,7 @@
                                                                                                                                                                                  }
                                                                                                                                                                              ],
                                                                                                                                                             "filter":  {
-                                                                                                                                                                           "expression":  "cloud.account.id IN $cloud.account.id AND cloud.region IN $cloud.region AND host.id IN $host.id AND aws.ec2.tag.UserID IN $aws.ec2.tag.UserID"
+                                                                                                                                                                           "expression":  "cloud.account.id IN $cloud.account.id AND cloud.region IN $cloud.region AND host.id IN $host.id AND aws.ec2.tag.UserID IN $aws.ec2.tag.UserID AND host.name IN $host.name"
                                                                                                                                                                        },
                                                                                                                                                             "groupBy":  [
                                                                                                                                                                             {
@@ -236,7 +255,7 @@
                                                                                                                                                                                 }
                                                                                                                                                                             ],
                                                                                                                                                            "filter":  {
-                                                                                                                                                                          "expression":  "cloud.account.id IN $cloud.account.id AND cloud.region IN $cloud.region AND host.id IN $host.id AND aws.ec2.tag.UserID IN $aws.ec2.tag.UserID"
+                                                                                                                                                                          "expression":  "cloud.account.id IN $cloud.account.id AND cloud.region IN $cloud.region AND host.id IN $host.id AND aws.ec2.tag.UserID IN $aws.ec2.tag.UserID AND host.name IN $host.name"
                                                                                                                                                                       },
                                                                                                                                                            "groupBy":  [
                                                                                                                                                                            {
@@ -322,7 +341,7 @@
                                                                                                                                                                                          }
                                                                                                                                                                                      ],
                                                                                                                                                                     "filter":  {
-                                                                                                                                                                                   "expression":  "cloud.account.id IN $cloud.account.id AND cloud.region IN $cloud.region AND host.id IN $host.id AND aws.ec2.tag.UserID IN $aws.ec2.tag.UserID"
+                                                                                                                                                                                   "expression":  "cloud.account.id IN $cloud.account.id AND cloud.region IN $cloud.region AND host.id IN $host.id AND aws.ec2.tag.UserID IN $aws.ec2.tag.UserID AND host.name IN $host.name"
                                                                                                                                                                                },
                                                                                                                                                                     "groupBy":  [
                                                                                                                                                                                     {

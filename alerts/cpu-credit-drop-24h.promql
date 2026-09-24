@@ -1,0 +1,12 @@
+100 * (
+  1 -
+  max by ("cloud.account.id", "cloud.region", "host.id", "host.name", "aws.ec2.tag.UserID") (
+    last_over_time({"aws.ec2.cpu_credit_balance"}[2h])
+  )
+  / on ("cloud.account.id", "cloud.region", "host.id") group_left()
+  (
+    max by ("cloud.account.id", "cloud.region", "host.id") (
+      last_over_time({"aws.ec2.cpu_credit_balance"}[2h] offset 24h)
+    ) > 0
+  )
+)
